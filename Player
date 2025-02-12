@@ -1,0 +1,31 @@
+extends CharacterBody2D
+
+# Player movement speed
+@export var speed = 100
+var bob_time = 0.0  # Timer for movement bobbing
+var idle_time = 0.0  # Timer for idle bobbing
+
+func _physics_process(delta):
+	# Get player input (left, right, up/down)
+	var direction: Vector2
+	direction.x = Input.get_action_strength("ui_right") - Input.get_action_strength("ui_left")
+	direction.y = Input.get_action_strength("ui_down") - Input.get_action_strength("ui_up")
+
+	# If input is digital, normalize it for diagonal movement
+	if abs(direction.x) == 1 and abs(direction.y) == 1:
+		direction = direction.normalized()
+
+	# Apply movement
+	var movement = speed * direction * delta
+	move_and_collide(movement)
+
+	# Bobbing effect
+	if direction != Vector2.ZERO:
+		# Moving: Faster bobbing
+		bob_time += delta * 10  
+		$Sprite2D.position.y = sin(bob_time) * 1.5  
+		idle_time = 0.0  # Reset idle animation
+	else:
+		# Idle: Slower, subtler bobbing
+		idle_time += delta * 4  
+		$Sprite2D.position.y = sin(idle_time) * 0.8  # Smaller bobbing effect
