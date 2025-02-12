@@ -1,0 +1,70 @@
+extends CharacterBody2D
+
+@export var speed: float = 20.0  
+@export var detection_range: float = 50.0  
+@export var stop_distance: float = 16.0  
+@export var patrol_distance: float = 50.0  
+@export var patrol_time: float = 2.0  
+
+var player: Node2D = null  
+var velocity_direction: Vector2 = Vector2.RIGHT  
+var patrol_timer: float = 0.0  
+var is_chasing: bool = false
+
+var bob_time: float = 0.0
+var idle_time: float = 0.0
+
+@onready var sprite = $Sprite2D  
+
+func _ready():
+	player = get_tree().get_first_node_in_group("player")
+	patrol_timer = patrol_time  
+
+func _physics_process(delta):
+	if player:
+		var distance = player.global_position.distance_to(global_position)
+
+		if distance <= detection_range and distance > stop_distance:
+			chase_player(delta)
+		elif distance <= stop_distance:
+			velocity = velocity.move_toward(Vector2.ZERO, speed * delta)
+			separate_from_player()  # Prevent getting stuck on top
+		else:
+			patrol(delta)
+
+	move_and_slide()  # Ensure no 'up_direction' parameter is passed
+	apply_bobbing(delta)
+
+func chase_player(delta):
+	is_chasing = true
+	var direction = (player.global_position - global_position).normalized()
+	
+	# If very close, slow down
+	if global_position.distance_to(player.global_position) <= stop_distance * 1.2:
+		velocity = velocity.move_toward(Vector2.ZERO, speed * 0.8 * delta)
+	else:
+		velocity = direction * speed  
+
+func patrol(delta):
+	is_chasing = false
+	patrol_timer -= delta
+
+	if patrol_timer <= 0:
+		velocity_direction *= -1  
+		patrol_timer = patrol_time  
+
+	velocity = velocity_direction * speed
+
+func apply_bobbing(delta):
+	if velocity.length() > 0:
+		bob_time += delta * 10  
+		sprite.position.y = sin(bob_time) * 1.5  
+		idle_time = 0.0  
+	else:
+		idle_time += delta * 4  
+		sprite.position.y = sin(idle_time) * 0.8  
+
+func separate_from_player():
+	# Push ghost slightly away when overlapping
+	var push_vector = (global_position - player.global_position).normalized() * 2.0  
+	global_position += push_vector  
