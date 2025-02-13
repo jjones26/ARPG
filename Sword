@@ -1,0 +1,33 @@
+extends Area2D
+
+@export var attack_duration: float = 0.15  # Time for attack animation
+@export var swing_angle: float = 90  # How wide the sword swings
+
+var attacking = false
+var default_rotation: float
+
+func _ready():
+	default_rotation = rotation_degrees  # Store original rotation
+
+func attack(direction: Vector2):
+	if attacking:
+		return
+	
+	attacking = true
+	var attack_rotation = direction.angle()  # Get angle of attack direction
+	var start_angle = attack_rotation - deg_to_rad(swing_angle / 2)
+	var end_angle = attack_rotation + deg_to_rad(swing_angle / 2)
+
+	# Tween animation for the attack swing
+	var tween = create_tween()
+	tween.tween_property(self, "rotation", start_angle, attack_duration * 0.3).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(self, "rotation", end_angle, attack_duration * 0.3).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(self, "rotation", default_rotation, attack_duration * 0.4).set_trans(Tween.TRANS_LINEAR)
+
+	# Enable hit detection briefly
+	monitoring = true
+	
+	# Wait for attack animation to finish
+	await get_tree().create_timer(attack_duration).timeout
+	monitoring = false
+	attacking = false
